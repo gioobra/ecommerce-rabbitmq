@@ -109,4 +109,65 @@ def start_consumer(service: OrderService) -> None:
     channel.start_consuming()
 
 def cli_menu(service: OrderService)-> None:
-    pass
+    while True:
+        print("\n ### Painel de Pedidos ###")
+        print("1. Fazer Pedido")
+        print("2. Listar Meus Pedidos")
+        print("3. Cancelar Pedido")
+        print("0. Sair")
+
+        opcao = input("> Escolha uma opcao: ").strip()
+
+        if opcao == "1":
+            nome_item = input("Informe o nome do item: ").strip()
+            qtd_item = input("Quantidade: ").strip()
+
+            try:
+                qtd = int(qtd_item)
+            except ValueError:
+                print("[!] Quantidade Inválida.")
+                continue
+                
+            item = {"item": nome_item, "quantidade": qtd}
+            pedido = service.create_order([item])
+
+            publish_event(
+                routing_key='pedido.criado',
+                payload=pedido
+            )
+            print(f"[OK] Pedido {pedido['id']} feito! ")
+        
+        elif opcao == "2":
+            pedidos = service.list_orders()
+            if not pedidos:
+                print("Nenhum pedido cadastrado. ")
+            for p in pedidos:
+                itens_str = ", ".join(f"{i['item']} (x{i['quantidade']})" for i in p["itens"])
+                print(f"ID: {p['id']} | Status: {p['status']:<12} | Itens: {itens_str}")
+        
+        elif opcao == "3":
+            pid = input("ID do pedido a cancelar: ").strip()
+            if service.delete_order(pid):
+                publish_event(
+                    routing_key='pedido.cancelado',
+                    payload={"order_id": pid}
+                )
+                print(f"[OK] Pedido {pid} cancelado.")
+            else:
+                print("[!] Pedido não encontrado.")
+            
+        elif opcao == "0":
+            print("Encerrando aplicação...")
+            break
+
+if __name__ == '__main__':
+    order_service = OrderService()
+
+    consumer_thread = threading.Thread(
+        target=start_consumer,
+        args=(order_service,),
+        daemon=True
+    )
+    consumer_thread.start()
+
+    cli_menu(order_service)
