@@ -25,8 +25,15 @@ class OrderService:
         self._orders[order_id] = order
         return order
 
-
-
+    def update_status(self, order_id: str, new_status: str) -> bool:
+        # Atualiza o status de um pedido
+        order: dict[str, Any] | None = self._orders.get(order_id)
+        if order:
+            order["status"] = new_status
+            print(f"\n[EVENTO] Pedido {order_id} atualizado para: {new_status}")
+            print("> Escolha uma opcao: ", end="", flush=True)
+            return True
+        return False
 
 
 
