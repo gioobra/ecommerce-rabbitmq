@@ -1,8 +1,10 @@
-from typing import Any
-import pika
-import uuid
 import json
 import threading
+import time
+import uuid
+from typing import Any
+
+import pika
 
 # Configuração do RabbitMQ
 RABBITMQ_HOST: str = 'localhost'
@@ -81,7 +83,8 @@ def start_consumer(service: OrderService) -> None:
     ''' 
     Inicia o consumidor para receber eventos do RabbitMQ
     '''
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT))
+    parameters = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT)
+    connection: pika.BlockingConnection = pika.BlockingConnection(parameters)
     channel = connection.channel()
 
     queue_name = 'order_updates_queue'
@@ -116,16 +119,17 @@ def cli_menu(service: OrderService)-> None:
         print("3. Cancelar Pedido")
         print("0. Sair")
 
-        opcao = input("> Escolha uma opcao: ").strip()
+        opcao = input("\n> Escolha uma opcao: ").strip()
 
         if opcao == "1":
-            nome_item = input("Informe o nome do item: ").strip()
+            nome_item = input("\nInforme o nome do item: ").strip()
             qtd_item = input("Quantidade: ").strip()
 
             try:
                 qtd = int(qtd_item)
             except ValueError:
-                print("[!] Quantidade Inválida.")
+                print("\n [!] Quantidade Inválida. \n")
+                time.sleep(1.5)
                 continue
                 
             item = {"item": nome_item, "quantidade": qtd}
@@ -135,29 +139,35 @@ def cli_menu(service: OrderService)-> None:
                 routing_key='pedido.criado',
                 payload=pedido
             )
-            print(f"[OK] Pedido {pedido['id']} feito! ")
+            print(f"\n [OK] Pedido {pedido['id']} feito! \n ")
+            time.sleep(1.5)
         
         elif opcao == "2":
             pedidos = service.list_orders()
             if not pedidos:
-                print("Nenhum pedido cadastrado. ")
-            for p in pedidos:
-                itens_str = ", ".join(f"{i['item']} (x{i['quantidade']})" for i in p["itens"])
-                print(f"ID: {p['id']} | Status: {p['status']:<12} | Itens: {itens_str}")
+                print("\n Nenhum pedido cadastrado. ")
+                time.sleep(1.5)
+            else:
+                for p in pedidos:
+                    itens_str = ", ".join(f"{i['item']} (x{i['quantidade']})" for i in p["itens"])
+                    print(f"\n ID: {p['id']} | Status: {p['status']:<12} | Itens: {itens_str}\n")
+                input("\nPressione [Enter] para voltar ao menu...")
         
         elif opcao == "3":
-            pid = input("ID do pedido a cancelar: ").strip()
+            pid = input("\nID do pedido a cancelar: ").strip()
             if service.delete_order(pid):
                 publish_event(
                     routing_key='pedido.cancelado',
                     payload={"order_id": pid}
                 )
-                print(f"[OK] Pedido {pid} cancelado.")
+                print(f"\n [OK] Pedido {pid} cancelado.\n")
+                time.sleep(1.5)
             else:
-                print("[!] Pedido não encontrado.")
+                print("\n [!] Pedido não encontrado.\n")
+                time.sleep(1.5)
             
         elif opcao == "0":
-            print("Encerrando aplicação...")
+            print("\n Encerrando aplicação...\n")
             break
 
 if __name__ == '__main__':
