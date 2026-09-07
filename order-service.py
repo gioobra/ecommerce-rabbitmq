@@ -35,6 +35,18 @@ class OrderService:
             return True
         return False
 
+    def delete_order(self, order_id: str) -> bool:
+        # Remove um pedido
+        return self._orders.pop(order_id, None) is not None
+    
+    def get_order(self, order_id: str) -> dict[str, Any] | None:
+        # Retorna um pedido específico
+        return self._orders.get(order_id)
+
+    def list_orders(self) -> list[dict[str, Any]]:
+        # Retorna todos os pedidos
+        return list(self._orders.values())
+
 
 
 def cli_menu(service: OrderService)-> None:
