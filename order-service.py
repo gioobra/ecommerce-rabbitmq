@@ -87,27 +87,56 @@ def start_consumer(service: OrderService) -> None:
     connection: pika.BlockingConnection = pika.BlockingConnection(parameters)
     channel = connection.channel()
 
-    queue_name = 'order_updates_queue'
+    channel.exchange_declare(exchange=EXCHANGE_NAME, exchange_type='direct', durable=True)
+
+    queue_name: str = 'order_updates_queue'
     channel.queue_declare(queue=queue_name, durable=True)
-    channel.queue_bind(
-        exchange=EXCHANGE_NAME,
-        queue=queue_name,
-        routing_key='pedido.status_atualizado'
-    )
+
+    routing_keys: list[str] = [
+        'pedido.estoque_ok',
+        'estoque.indisponivel',
+        'pagamento.aprovado',
+        'pagamento.recusado',
+        'pedido.enviado'
+    ]
+
+    for rk in routing_keys:
+        channel.queue_bind(exchange=EXCHANGE_NAME, queue=queue_name, routing_key=rk)
     
+    status_mapping: dict[str, str] = {
+        'pedido.estoque_ok': 'ESTOQUE_OK',
+        'estoque.indisponivel': 'ESTOQUE_INDISPONIVEL',
+        'pagamento.aprovado': 'PAGAMENTO_APROVADO',
+        'pagamento.recusado': 'PAGAMENTO_RECUSADO',
+        'pedido.enviado': 'ENVIADO'
+    }
+
     def callback(ch, method, properties, body: bytes) -> None:
         '''
         Função para definir o que fazer quando uma mensagem nova chegar na fila
         '''
         event_data = json.loads(body.decode('utf-8'))
         order_id = event_data.get("order_id")
-        novo_status = event_data.get("status")
+        routing_key = method.routing_key
 
-        if order_id and novo_status:
+        if order_id:
+            novo_status: str = event_data.get("status") or status_mapping.get(routing_key, routing_key)
             service.update_status(order_id, novo_status)
-        
-        ch.basic_ack(delivery_tag=method.delivery_tag)
-    
+
+            if routing_key in ('estoque.indisponivel', 'pagamento.recusado'):
+                publish_event(
+                    routing_key='pedido.excluido',
+                    payload={
+                        "order_id": order_id,
+                        "motivo": f"Falha detectada via {routing_key}"
+                    }
+                )
+                print(f"\n[COMPENSAÇÃO] 'pedido.excluido' disparado para Pedido {order_id}")
+                print("> Escolha uma opcao: ", end="", flush=True)
+
+        ch.basic_ack(delivery_tag=method.delivery_tag) 
+
+    channel.basic_qos(prefetch_count=1)
     channel.basic_consume(queue=queue_name, on_message_callback=callback)
     channel.start_consuming()
 
@@ -137,7 +166,12 @@ def cli_menu(service: OrderService)-> None:
 
             publish_event(
                 routing_key='pedido.criado',
-                payload=pedido
+                payload={
+                    "order_id": pedido["id"],
+                    "itens": pedido["itens"],
+                    "status": pedido["status"],
+                    "criado_em": time.time()
+                }
             )
             print(f"\n [OK] Pedido {pedido['id']} feito! \n ")
             time.sleep(1.5)
@@ -157,10 +191,10 @@ def cli_menu(service: OrderService)-> None:
             pid = input("\nID do pedido a cancelar: ").strip()
             if service.delete_order(pid):
                 publish_event(
-                    routing_key='pedido.cancelado',
-                    payload={"order_id": pid}
+                    routing_key='pedido.excluido',
+                    payload={"order_id": pid, "motivo": "Cancelamento manual pelo usuario"}
                 )
-                print(f"\n [OK] Pedido {pid} cancelado.\n")
+                print(f"\n[OK] Pedido {pid} cancelado e evento 'pedido.excluido' enviado.\n")
                 time.sleep(1.5)
             else:
                 print("\n [!] Pedido não encontrado.\n")
