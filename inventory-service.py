@@ -88,7 +88,7 @@ def start_consumer(service: StockService) -> None:
 
     channel.exchange_declare(exchange=EXCHANGE_NAME, exchange_type='direct', durable=True)
 
-    queue_name: str = 'stock_event_queue'
+    queue_name: str = 'stock_events_queue'
     channel.queue_declare(queue=queue_name, durable=True)
 
     channel.queue_bind(exchange=EXCHANGE_NAME, queue=queue_name, routing_key='pedido.criado')
@@ -121,14 +121,14 @@ def start_consumer(service: StockService) -> None:
                     routing_key='estoque.indisponivel',
                     payload={
                         "order_id": order_id,
-                        "status": "ESTOQUE INSUFICIENTE",
+                        "status": "ESTOQUE_INDISPONIVEL",
                         "motivo": "Pordutos indisponíveis no estoque"
                     }
                 )
                 print(f"[PUBLICADO] 'estoque.indisponivel' para Pedido {order_id}")
         
         elif routing_key == 'pedido.excluido':
-            print(f"\n [EVENTO] Processando estorno para o Pedido: {order_id}")
+            print(f"\n[EVENTO] Processando estorno para o Pedido: {order_id}")
             service.restore(order_id)
 
         ch.basic_ack(delivery_tag=method.delivery_tag)

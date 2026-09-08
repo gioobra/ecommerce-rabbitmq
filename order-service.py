@@ -16,7 +16,7 @@ class OrderService:
         # Estrutura em memória: { "order_id": {"id": str, "itens": list, "status": str} }
         self._orders: dict[str, dict[str, Any]] = {}
     
-    def create_order(self, itens: list[str, dict[str, Any]]) -> dict[str, Any]:
+    def create_order(self, itens: list[dict[str, Any]]) -> dict[str, Any]:
         ''' 
         Gera um ID único para o pedido
         '''
@@ -157,7 +157,7 @@ def cli_menu(service: OrderService)-> None:
             try:
                 qtd = int(qtd_item)
             except ValueError:
-                print("\n [!] Quantidade Inválida. \n")
+                print("\n[!] Quantidade Inválida. \n")
                 time.sleep(1.5)
                 continue
                 
@@ -173,7 +173,7 @@ def cli_menu(service: OrderService)-> None:
                     "criado_em": time.time()
                 }
             )
-            print(f"\n [OK] Pedido {pedido['id']} feito! \n ")
+            print(f"\n[OK] Pedido {pedido['id']} feito! \n ")
             time.sleep(1.5)
         
         elif opcao == "2":
@@ -197,7 +197,7 @@ def cli_menu(service: OrderService)-> None:
                 print(f"\n[OK] Pedido {pid} cancelado e evento 'pedido.excluido' enviado.\n")
                 time.sleep(1.5)
             else:
-                print("\n [!] Pedido não encontrado.\n")
+                print("\n[!] Pedido não encontrado.\n")
                 time.sleep(1.5)
             
         elif opcao == "0":

@@ -19,7 +19,7 @@ class PaymentService:
         '''
         Simula a comunicação com a operadora de cartão/gateway.
         '''
-        print(f"\n [PROCESSANDO] Cobrança do Pedido {order_id}...")
+        print(f"\n[PROCESSANDO] Cobrança do Pedido {order_id}...")
 
         time.sleep(1.5)
 
