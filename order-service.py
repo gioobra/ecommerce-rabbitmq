@@ -16,7 +16,7 @@ class OrderService:
         # Estrutura em memória: { "order_id": {"id": str, "itens": list, "status": str} }
         self._orders: dict[str, dict[str, Any]] = {}
     
-    def create_order(self, itens: list[str, dict[str, Any]]) -> dict[str, Any]:
+    def create_order(self, itens: list[dict[str, Any]]) -> dict[str, Any]:
         ''' 
         Gera um ID único para o pedido
         '''
@@ -173,7 +173,7 @@ def cli_menu(service: OrderService)-> None:
                     "criado_em": time.time()
                 }
             )
-            print(f"\n [OK] Pedido {pedido['id']} feito! \n ")
+            print(f"\n[OK] Pedido {pedido['id']} feito! \n ")
             time.sleep(1.5)
         
         elif opcao == "2":
