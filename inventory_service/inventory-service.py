@@ -1,14 +1,26 @@
+import sys
 import json
+from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "shared"))
+
 import pika
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from utils import ensure_keys, sign_payload, verify_signature, load_public_key
 
 # Configuração do RabbitMQ
 RABBITMQ_HOST: str = 'localhost'
 RABBITMQ_PORT: int = 5672
 EXCHANGE_NAME: str = 'eCommerce'
 
-class StockService:
+SERVICE_NAME: str = 'inventory'
+
+BASE_DIR: Path = Path(__file__).resolve().parent.parent
+
+_public_key_cache: dict[str, Any] = {}
+
+class InventoryService:
     def __init__(self) -> None:
         # Estrutura em memória: { "nome_do_item": quantidade }
         self._estoque: dict[str, int] = {
@@ -60,10 +72,17 @@ class StockService:
 
         return True
     
-def publish_event(routing_key: str, payload: dict[str, Any]) -> None:
-    '''
-    Publica os eventos de resultado na exchange.
-    '''
+def publish_event(routing_key: str, payload: dict[str, Any], private_key: RSAPrivateKey) -> None:
+   
+    assinatura: str = sign_payload(private_key, payload)
+
+    envelope: dict[str, Any] = {
+        "event_type": routing_key,
+        "producer": SERVICE_NAME,
+        "payload": payload,
+        "signature": assinatura,
+    }
+
     parameters = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT)
     connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
@@ -73,7 +92,7 @@ def publish_event(routing_key: str, payload: dict[str, Any]) -> None:
     channel.basic_publish(
         exchange=EXCHANGE_NAME,
         routing_key=routing_key,
-        body=json.dumps(payload).encode('utf-8'),
+        body=json.dumps(envelope).encode('utf-8'),
         properties=pika.BasicProperties(
             delivery_mode=2,
             content_type='application/json'
@@ -81,14 +100,26 @@ def publish_event(routing_key: str, payload: dict[str, Any]) -> None:
     )
     connection.close()
 
-def start_consumer(service: StockService) -> None:
+def _get_producer_public_key(producer: str):
+    '''
+    Retorna a chave pública de um produtor, usando cache em memória
+    '''
+    if producer not in _public_key_cache:
+        _public_key_cache[producer] = load_public_key(
+            service_name=producer,
+            requester_service=SERVICE_NAME,
+            base_dir=BASE_DIR,
+        )
+    return _public_key_cache[producer]
+
+def start_consumer(service: InventoryService, private_key: RSAPrivateKey) -> None:
     parameters = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT)
     connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
 
     channel.exchange_declare(exchange=EXCHANGE_NAME, exchange_type='direct', durable=True)
 
-    queue_name: str = 'stock_events_queue'
+    queue_name: str = 'inventory_events_queue'
     channel.queue_declare(queue=queue_name, durable=True)
 
     channel.queue_bind(exchange=EXCHANGE_NAME, queue=queue_name, routing_key='pedido.criado')
@@ -98,8 +129,26 @@ def start_consumer(service: StockService) -> None:
         '''
         Função para definir o que fazer quando uma mensagem nova chegar na fila
         '''
-        event_data = json.loads(body.decode('utf-8'))
+        envelope = json.loads(body.decode('utf-8'))
         routing_key = method.routing_key
+
+        producer: str = envelope.get("producer", "")
+        payload: dict[str, Any] = envelope.get("payload", {})
+        signature: str = envelope.get("signature", "")
+
+        public_key = _get_producer_public_key(producer)
+
+        if public_key is None:
+            print(f"[SEGURANÇA] Chave pública de '{producer}' não encontrada. Evento descartado.")
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            return
+
+        if not verify_signature(public_key, payload, signature):
+            print(f"[SEGURANÇA] Assinatura inválida de '{producer}' em '{routing_key}'. Evento descartado.")
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            return
+
+        event_data = payload
         order_id = event_data["order_id"]
         
         if routing_key == 'pedido.criado':
@@ -113,7 +162,8 @@ def start_consumer(service: StockService) -> None:
                         "order_id": order_id,
                         "itens": itens,
                         "status": "ESTOQUE_OK"
-                    }
+                    },
+                    private_key=private_key
                 )
                 print(f"[PUBLICADO] 'pedido.estoque_ok' para Pedido {order_id}")
             else:
@@ -122,8 +172,9 @@ def start_consumer(service: StockService) -> None:
                     payload={
                         "order_id": order_id,
                         "status": "ESTOQUE_INDISPONIVEL",
-                        "motivo": "Pordutos indisponíveis no estoque"
-                    }
+                        "motivo": "Produtos indisponíveis no estoque"
+                    },
+                    private_key=private_key
                 )
                 print(f"[PUBLICADO] 'estoque.indisponivel' para Pedido {order_id}")
         
@@ -140,5 +191,7 @@ def start_consumer(service: StockService) -> None:
     channel.start_consuming()
 
 if __name__ == '__main__':
-    service = StockService()
-    start_consumer(service)
+    private_key: RSAPrivateKey = ensure_keys(service_name=SERVICE_NAME, base_dir=BASE_DIR)
+
+    service = InventoryService()
+    start_consumer(service, private_key)

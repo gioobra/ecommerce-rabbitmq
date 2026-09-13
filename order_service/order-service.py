@@ -1,15 +1,28 @@
+import sys
 import json
 import threading
 import time
 import uuid
+from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "shared"))
+
 import pika
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from utils import ensure_keys, sign_payload, verify_signature, load_public_key
 
 # Configuração do RabbitMQ
 RABBITMQ_HOST: str = 'localhost'
 RABBITMQ_PORT: int = 5672
 EXCHANGE_NAME: str = 'eCommerce'
+
+SERVICE_NAME: str = 'order'
+
+BASE_DIR: Path = Path(__file__).resolve().parent.parent
+
+_public_key_cache: dict[str, Any] = {}
+
 
 class OrderService:
     def __init__(self) -> None:
@@ -59,11 +72,18 @@ class OrderService:
         '''
         return list(self._orders.values())
 
-def publish_event(routing_key: str, payload: dict[str, Any]) -> None:
-    ''' 
-    Publica um evento no RabbitMQ
-    '''
-    # Conexão com o RabbitMQ
+
+def publish_event(routing_key: str, payload: dict[str, Any], private_key: RSAPrivateKey) -> None:
+   
+    assinatura: str = sign_payload(private_key, payload)
+
+    envelope: dict[str, Any] = {
+        "event_type": routing_key,
+        "producer": SERVICE_NAME,
+        "payload": payload,
+        "signature": assinatura,
+    }
+
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT))
     channel = connection.channel()
     channel.exchange_declare(exchange=EXCHANGE_NAME, exchange_type='direct', durable=True)
@@ -71,7 +91,7 @@ def publish_event(routing_key: str, payload: dict[str, Any]) -> None:
     channel.basic_publish(
         exchange=EXCHANGE_NAME,
         routing_key=routing_key,
-        body=json.dumps(payload).encode('utf-8'),
+        body=json.dumps(envelope).encode('utf-8'),
         properties=pika.BasicProperties(
             delivery_mode=2,  # Mensagem persistente
             content_type='application/json'
@@ -79,7 +99,21 @@ def publish_event(routing_key: str, payload: dict[str, Any]) -> None:
     )
     connection.close()
 
-def start_consumer(service: OrderService) -> None:
+
+def _get_producer_public_key(producer: str):
+    '''
+    Retorna a chave pública de um produtor, usando cache em memória
+    '''
+    if producer not in _public_key_cache:
+        _public_key_cache[producer] = load_public_key(
+            service_name=producer,
+            requester_service=SERVICE_NAME,
+            base_dir=BASE_DIR,
+        )
+    return _public_key_cache[producer]
+
+
+def start_consumer(service: OrderService, private_key: RSAPrivateKey) -> None:
     ''' 
     Inicia o consumidor para receber eventos do RabbitMQ
     '''
@@ -112,12 +146,28 @@ def start_consumer(service: OrderService) -> None:
     }
 
     def callback(ch, method, properties, body: bytes) -> None:
-        '''
-        Função para definir o que fazer quando uma mensagem nova chegar na fila
-        '''
-        event_data = json.loads(body.decode('utf-8'))
-        order_id = event_data.get("order_id")
+        
+        envelope = json.loads(body.decode('utf-8'))
         routing_key = method.routing_key
+
+        producer: str = envelope.get("producer", "")
+        payload: dict[str, Any] = envelope.get("payload", {})
+        signature: str = envelope.get("signature", "")
+
+        public_key = _get_producer_public_key(producer)
+
+        if public_key is None:
+            print(f"\n[SEGURANÇA] Chave pública de '{producer}' não encontrada. Evento descartado.")
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            return
+
+        if not verify_signature(public_key, payload, signature):
+            print(f"\n[SEGURANÇA] Assinatura inválida de '{producer}' em '{routing_key}'. Evento descartado.")
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            return
+
+        event_data = payload
+        order_id = event_data.get("order_id")
 
         if order_id:
             novo_status: str = event_data.get("status") or status_mapping.get(routing_key, routing_key)
@@ -129,7 +179,8 @@ def start_consumer(service: OrderService) -> None:
                     payload={
                         "order_id": order_id,
                         "motivo": f"Falha detectada via {routing_key}"
-                    }
+                    },
+                    private_key=private_key
                 )
                 print(f"\n[COMPENSAÇÃO] 'pedido.excluido' disparado para Pedido {order_id}")
                 print("> Escolha uma opcao: ", end="", flush=True)
@@ -140,7 +191,8 @@ def start_consumer(service: OrderService) -> None:
     channel.basic_consume(queue=queue_name, on_message_callback=callback)
     channel.start_consuming()
 
-def cli_menu(service: OrderService)-> None:
+
+def cli_menu(service: OrderService, private_key: RSAPrivateKey) -> None:
     while True:
         print("\n ### Painel de Pedidos ###")
         print("1. Fazer Pedido")
@@ -171,7 +223,8 @@ def cli_menu(service: OrderService)-> None:
                     "itens": pedido["itens"],
                     "status": pedido["status"],
                     "criado_em": time.time()
-                }
+                },
+                private_key=private_key
             )
             print(f"\n[OK] Pedido {pedido['id']} feito! \n ")
             time.sleep(1.5)
@@ -192,7 +245,8 @@ def cli_menu(service: OrderService)-> None:
             if service.delete_order(pid):
                 publish_event(
                     routing_key='pedido.excluido',
-                    payload={"order_id": pid, "motivo": "Cancelamento manual pelo usuario"}
+                    payload={"order_id": pid, "motivo": "Cancelamento manual pelo usuario"},
+                    private_key=private_key
                 )
                 print(f"\n[OK] Pedido {pid} cancelado e evento 'pedido.excluido' enviado.\n")
                 time.sleep(1.5)
@@ -204,14 +258,17 @@ def cli_menu(service: OrderService)-> None:
             print("\n Encerrando aplicação...\n")
             break
 
+
 if __name__ == '__main__':
+    private_key: RSAPrivateKey = ensure_keys(service_name=SERVICE_NAME, base_dir=BASE_DIR)
+
     order_service = OrderService()
 
     consumer_thread = threading.Thread(
         target=start_consumer,
-        args=(order_service,),
+        args=(order_service, private_key),
         daemon=True
     )
     consumer_thread.start()
 
-    cli_menu(order_service)
+    cli_menu(order_service, private_key)

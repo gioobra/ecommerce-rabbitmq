@@ -14,7 +14,7 @@ class PromotionConsumer:
 
     def handle_promotion(self, routing_key: str, payload: dict[str, Any]) -> None:
         '''
-        Processa (exibe) a promoção recebida.
+        Processa a promoção recebida.
         '''
         print(f"\n[{self.nome}] Nova promoção recebida ({routing_key})")
         print(f"  -> ID: {payload.get('promocao_id')}")
@@ -36,13 +36,13 @@ def start_consumer(consumer: PromotionConsumer, queue_name: str, binding_keys: l
         channel.queue_bind(exchange=EXCHANGE_NAME, queue=queue_name, routing_key=binding_key)
 
     def callback(ch, method, properties, body: bytes) -> None:
-        '''
-        Função para definir o que fazer quando uma promoção nova chegar na fila
-        '''
-        event_data = json.loads(body.decode('utf-8'))
+        
+        envelope = json.loads(body.decode('utf-8'))
         routing_key = method.routing_key
 
-        consumer.handle_promotion(routing_key, event_data)
+        payload: dict[str, Any] = envelope.get("payload", {})
+
+        consumer.handle_promotion(routing_key, payload)
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
