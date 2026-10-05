@@ -14,6 +14,7 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPubl
 from cryptography.exceptions import InvalidSignature
 
 SERVICES: list[str] = [
+    "gateway",
     "order",
     "inventory",
     "payment",
@@ -114,7 +115,9 @@ def ensure_keys(service_name: str, base_dir: Path) -> RSAPrivateKey:
 
     if private_key_path.exists():
         print(f"[CRYPTO] Chaves de '{service_name}' já existem. Carregando do disco...")
-        return _load_private_key(private_key_path)
+        private_key = _load_private_key(private_key_path)
+        _distribute_public_key(base_dir, service_name, private_key.public_key())
+        return private_key
 
     print(f"[CRYPTO] Nenhuma chave encontrada para '{service_name}'. Gerando novo par RSA...")
     private_key, public_key = _generate_key_pair()
