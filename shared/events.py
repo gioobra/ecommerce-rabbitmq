@@ -39,7 +39,7 @@ QUEUES: dict[str, list[str]] = {
         PAGAMENTO_APROVADO, PAGAMENTO_RECUSADO, PEDIDO_ENVIADO,
     ],
     "inventory_events_queue": [PEDIDO_CRIADO, PEDIDO_EXCLUIDO],
-    "payment_events_queue": [PEDIDO_ESTOQUE_OK],
+    "payment_events_queue": [PEDIDO_ESTOQUE_OK, PEDIDO_EXCLUIDO],
     "delivery_events_queue": [PAGAMENTO_APROVADO],
     "promotion_events_queue": [INTERESSE_PROMOCAO],
 }
