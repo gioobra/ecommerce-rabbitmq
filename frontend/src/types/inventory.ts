@@ -1,4 +1,4 @@
-interface Produto {
+export interface Produto {
     nome: string;
     id: number;
     categoria: string;
@@ -6,13 +6,13 @@ interface Produto {
     quantidade: number;
 }
 
-interface ItemPedidoInput {
+export interface ItemPedidoInput {
     produto_id: number;
     quantidade: number;
 }
 
-interface NovoPedidoPayload {
-    client_id: number;
-    itens: number;
+export interface NovoPedidoPayload {
+    client_id: string;
+    itens: ItemPedidoInput[];
 }
 

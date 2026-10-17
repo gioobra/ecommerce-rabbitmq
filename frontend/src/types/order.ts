@@ -1,27 +1,44 @@
-interface Pedido{
-    order_id: number
-    cliente_id: number
-    itens: Array<string>
-    status: string
-    valor_total: number
-    itens_confirmados: Array<string>
-    itens_faltantes: Array<string>
-    checkout_url: string
-    nota_fiscal: string
-    motivo: string
-    criado_em: string
-    atualizado_em: string
-    historico: Array<string>
+import type { ItemPedidoInput } from "./inventory";
+
+export interface Pedido{
+    order_id: string;
+    client_id: string;
+    itens: ItemPedidoInput[];
+    status: string;
+    valor_total?: number | null;
+    itens_confirmados?: Array<{
+        produto_id: number;
+        nome: string;
+        quantidade: number;
+        preco_unitario: number;
+        subtotal: number;
+    }> | null;
+    itens_faltantes?: Array<{
+        produto_id?: number;
+        solicitado?: number;
+        disponivel?: number;
+        motivo: string;
+    }> | null;
+    checkout_url?: string | null;
+    nota_fiscal?: string | null;
+    motivo?: string | null;
+    criado_em?: string;
+    atualizado_em?: string;
+    historico?: Array<{
+        status: string;
+        detalhe: string;
+        timestamp: string | number;
+    }>;
 }
 
-interface SnapshotEventData{
-    pedidos: Pedido[]
+export interface SnapshotEventData{
+    pedidos: Pedido[];
 }
 
-interface PedidoEventData{
-    order_id: number
-    status: string
-    detalhe: string
-    timestamp: number
-    pedido: Pedido
+export interface PedidoEventData{
+    order_id: string;
+    status: string;
+    detalhe: string;
+    timestamp: string | number;
+    pedido: Pedido;
 }
