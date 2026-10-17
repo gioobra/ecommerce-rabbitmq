@@ -51,6 +51,28 @@ run_service() {
     PIDS+=($!)
 }
 
+# Flags de linha de comando
+CLEAN_KEYS=false
+CLEAN_DB=false
+NO_FRONTEND=false
+
+for arg in "$@"; do
+    case "$arg" in
+        --clean-keys) CLEAN_KEYS=true ;;
+        --clean-db)   CLEAN_DB=true ;;
+        --reset)      CLEAN_KEYS=true; CLEAN_DB=true ;;
+        --no-frontend) NO_FRONTEND=true ;;
+        --help|-h)
+            echo "Uso: ./dev.sh [opções]"
+            echo "  --clean-keys   Apaga todas as chaves RSA (privadas e públicas) antes de subir"
+            echo "  --clean-db     Apaga os bancos SQLite (.db) para restaurar o estoque/dados iniciais"
+            echo "  --reset        Atalho para --clean-keys + --clean-db"
+            echo "  --no-frontend  Sobe apenas o backend (sem o Vite)"
+            exit 0
+            ;;
+    esac
+done
+
 echo -e "${C_BOLD}🐰 1/3 Verificando RabbitMQ (Docker)...${C_RESET}"
 if command -v docker >/dev/null 2>&1; then
     docker compose up -d rabbitmq
@@ -64,6 +86,18 @@ if command -v docker >/dev/null 2>&1; then
         sleep 1
     done
     echo ""
+fi
+
+if [ "$CLEAN_DB" = true ]; then
+    echo -e "${C_BOLD}🧹 Limpando bancos de dados SQLite (*.db)...${C_RESET}"
+    rm -f "$ROOT_DIR"/*_service/*.db "$ROOT_DIR"/*_service/*.db-wal "$ROOT_DIR"/*_service/*.db-shm
+    echo -e "   Bancos removidos (serão recriados do zero com estoque inicial).\n"
+fi
+
+if [ "$CLEAN_KEYS" = true ]; then
+    echo -e "${C_BOLD}🗑️  Removendo todas as chaves RSA antigas...${C_RESET}"
+    rm -rf "$ROOT_DIR"/*_service/keys "$ROOT_DIR"/*_service/public_keys
+    echo -e "   Chaves removidas.\n"
 fi
 
 echo -e "${C_BOLD}🔑 2/3 Sincronizando chaves RSA entre os microsserviços...${C_RESET}"
@@ -100,7 +134,7 @@ run_service "GATEWAY" "$C_GW" \
     "$UVICORN" order_service.gateway_app:app --port 8000 --log-level info
 
 # 6. Frontend Vite (:5173) - desative passando --no-frontend se quiser só o backend
-if [[ "$*" != *"--no-frontend"* ]] && [ -d "$ROOT_DIR/frontend" ]; then
+if [ "$NO_FRONTEND" = false ] && [ -d "$ROOT_DIR/frontend" ]; then
     run_service "FRONTEND" "$C_FRONT" \
         npm --prefix "$ROOT_DIR/frontend" run dev
 fi
