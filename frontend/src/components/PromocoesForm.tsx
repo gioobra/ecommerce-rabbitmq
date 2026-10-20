@@ -79,22 +79,22 @@ export function PromocoesForm({ clientId }: PromocoesFormProps) {
   return (
     <section className="promocoes-section">
       <div className="promocoes-header">
-        <h2>📬 Inscrição de Promoções</h2>
+        <h2>SUBSCRIPTION_ENGINE // EMAIL_NOTIFIER</h2>
         <p className="promocoes-subtitulo">
-          Cadastre seu e-mail e escolha as categorias para receber ofertas exclusivas diretamente na sua caixa de entrada.
+          Cadastre seu endereço de e-mail e selecione os canais de hardware para receber despachos de ofertas.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="promocoes-form">
         <div className="form-group">
           <label htmlFor="promo-email">
-            <strong>Seu E-mail:</strong>
+            <strong>TARGET_EMAIL:</strong>
           </label>
           <input
             id="promo-email"
             type="email"
             className="input-email-promocao"
-            placeholder="exemplo@dominio.com"
+            placeholder="operator@cyberspace.net"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={enviando}
@@ -104,12 +104,12 @@ export function PromocoesForm({ clientId }: PromocoesFormProps) {
 
         <div className="form-group">
           <label>
-            <strong>Categorias de Interesse:</strong>
+            <strong>CHANNELS_OF_INTEREST:</strong>
           </label>
           {carregandoCategorias ? (
-            <p className="texto-carregando">Carregando categorias disponíveis...</p>
+            <p className="texto-carregando">Escaneando categorias no estoque...</p>
           ) : categoriasDisponiveis.length === 0 ? (
-            <p className="texto-carregando">Nenhuma categoria encontrada no estoque.</p>
+            <p className="texto-carregando">Nenhum canal de hardware disponível.</p>
           ) : (
             <div className="categorias-checkboxes">
               {categoriasDisponiveis.map((cat) => (
@@ -120,7 +120,7 @@ export function PromocoesForm({ clientId }: PromocoesFormProps) {
                     onChange={() => toggleCategoria(cat)}
                     disabled={enviando}
                   />
-                  <span>{cat}</span>
+                  <span>[ {cat} ]</span>
                 </label>
               ))}
             </div>
@@ -132,18 +132,18 @@ export function PromocoesForm({ clientId }: PromocoesFormProps) {
           className="btn-inscrever-promocao"
           disabled={enviando || carregandoCategorias || categoriasSelecionadas.length === 0}
         >
-          {enviando ? "Cadastrando..." : "Cadastrar para Receber Ofertas"}
+          {enviando ? "PROCESSANDO..." : "[ REGISTRAR INSCRIÇÃO ]"}
         </button>
 
         {mensagemSucesso && (
           <div className="msg-promocao sucesso">
-            ✅ {mensagemSucesso}
+            [SUCCESS] {mensagemSucesso}
           </div>
         )}
 
         {mensagemErro && (
           <div className="msg-promocao erro">
-            ⚠️ {mensagemErro}
+            [ERROR] {mensagemErro}
           </div>
         )}
       </form>

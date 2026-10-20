@@ -137,10 +137,13 @@ export default function App() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>E-Commerce Microservices</h1>
+        <div className="header-brand">
+          <h1>M3RC4D0 L33T</h1>
+          <span className="brand-tag">[CYB3R_ST0R3 // ROOT_ACCESS]</span>
+        </div>
         <div className="cliente-bar">
           <label>
-            <strong>Cliente ID: </strong>
+            <strong>OPERATOR_ID: </strong>
             <input
               className="input-cliente"
               type="text"
@@ -148,26 +151,26 @@ export default function App() {
               onChange={(e) => setClientId(e.target.value)}
             />
           </label>
-          <span className="sse-status">
-            {sseConectado ? "🟢 SSE Conectado" : "🔴 SSE Desconectado"}
+          <span className={`sse-status ${sseConectado ? "online" : "offline"}`}>
+            {sseConectado ? "[STREAM: ONLINE]" : "[STREAM: OFFLINE]"}
           </span>
         </div>
       </header>
 
       <section className="catalogo-section">
         <div className="catalogo-topo">
-          <h2>Catálogo de Produtos</h2>
+          <h2>C4T4L0G0 // HARDWARE_INVENTORY</h2>
           <button
             className="btn-finalizar"
             onClick={handleFinalizarPedido}
             disabled={carrinho.length === 0}
           >
-            Finalizar Pedido ({totalItensCarrinho} itens)
+            EXECUTAR CHECKOUT ({totalItensCarrinho} itens)
           </button>
         </div>
 
         {produtos.length === 0 ? (
-          <p>Carregando produtos do estoque...</p>
+          <p className="texto-carregando">Carregando catálogo do estoque...</p>
         ) : (
           <div className="catalogo-grid">
             {produtos.map((p) => {
@@ -190,9 +193,9 @@ export default function App() {
 
       <div className="painel-inferior">
         <section className="pedidos-section">
-          <h2>Meus Pedidos ({pedidos.length})</h2>
+          <h2>HISTÓRICO DE PEDIDOS // PID_TRACKER ({pedidos.length})</h2>
           {pedidos.length === 0 ? (
-            <p>Nenhum pedido realizado para {clientId}.</p>
+            <p className="texto-vazio">Nenhum pedido registrado para o operador {clientId}.</p>
           ) : (
             <div className="pedidos-lista">
               {pedidos.map((ped) => (

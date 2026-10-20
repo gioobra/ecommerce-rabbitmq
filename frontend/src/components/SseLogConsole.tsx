@@ -9,10 +9,10 @@ export function SseLogConsole({ logs, onLimparLogs }: SseLogConsoleProps) {
   return (
     <section className="sse-section">
       <div className="sse-header">
-        <h2>Eventos RabbitMQ (SSE)</h2>
+        <h2>EVENT_STREAM // SSE_DEBUG_CONSOLE</h2>
         {logs.length > 0 && (
           <button className="btn-limpar-logs" onClick={onLimparLogs}>
-            Limpar
+            [ FLUSH_LOGS ]
           </button>
         )}
       </div>
@@ -20,7 +20,7 @@ export function SseLogConsole({ logs, onLimparLogs }: SseLogConsoleProps) {
       <div className="terminal-sse">
         {logs.length === 0 ? (
           <p className="terminal-vazio">
-            Aguardando eventos dos microsserviços...
+            &gt; Aguardando telemetria de eventos RabbitMQ...
           </p>
         ) : (
           logs.map((log, index) => (

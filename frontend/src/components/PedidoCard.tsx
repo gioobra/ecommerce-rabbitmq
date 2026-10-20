@@ -80,7 +80,7 @@ export function PedidoCard({ pedido, onCancelar }: PedidoCardProps) {
 
         {pedido.nota_fiscal && (
           <p className="texto-sucesso">
-            📦 Nota Fiscal / Rastreio: <strong>{pedido.nota_fiscal}</strong>
+            [NF / TRACKING_ID]: <strong>{pedido.nota_fiscal}</strong>
           </p>
         )}
       </div>
@@ -94,7 +94,7 @@ export function PedidoCard({ pedido, onCancelar }: PedidoCardProps) {
             rel="noreferrer"
             className="btn-pagar"
           >
-            💳 Abrir Link de Pagamento
+            [ ABRIR CHECKOUT DE PAGAMENTO ]
           </a>
         )}
 
@@ -103,7 +103,7 @@ export function PedidoCard({ pedido, onCancelar }: PedidoCardProps) {
             className="btn-cancelar"
             onClick={() => onCancelar(pedido.order_id)}
           >
-            Cancelar Pedido
+            [ CANCELAR PEDIDO ]
           </button>
         )}
       </div>

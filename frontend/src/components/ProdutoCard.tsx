@@ -40,12 +40,12 @@ export function ProdutoCard({
 
       <div className="produto-header">
         <h3 className="produto-nome">{produto.nome}</h3>
-        <span className="produto-categoria">{produto.categoria}</span>
+        <span className="produto-categoria">[ {produto.categoria} ]</span>
       </div>
 
       <p className="produto-preco">R$ {produto.preco.toFixed(2)}</p>
       <p className="produto-estoque">
-        Disponível em estoque: <strong>{produto.quantidade}</strong>
+        STOCK: <strong>{produto.quantidade}</strong> units
       </p>
 
       <div className="produto-controles">
