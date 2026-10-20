@@ -16,3 +16,9 @@ export interface NovoPedidoPayload {
     itens: ItemPedidoInput[];
 }
 
+export interface InscricaoPromocaoPayload {
+    client_id?: string;
+    email: string;
+    categorias: string[];
+}
+

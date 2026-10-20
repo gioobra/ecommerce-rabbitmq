@@ -15,6 +15,7 @@ C_INV="\033[1;32m"     # Verde (Estoque :8001)
 C_PAY="\033[1;33m"     # Amarelo (Pagamento :8002)
 C_MOCK="\033[1;35m"    # Magenta (Mock Payment :9000)
 C_DEL="\033[1;34m"     # Azul (Entrega)
+C_PROMO="\033[1;35m"   # Magenta (Promoções)
 C_FRONT="\033[1;96m"   # Ciano claro (Frontend :5173)
 
 # Detecta ambiente virtual Python
@@ -131,11 +132,15 @@ run_service "PAYMENT" "$C_PAY" \
 run_service "DELIVERY" "$C_DEL" \
     "$PYTHON" delivery_service/delivery_main.py
 
-# 5. API Gateway / Pedidos (:8000)
+# 5. MS Promoções (Consumer RabbitMQ + Disparo Resend)
+run_service "PROMOTION" "$C_PROMO" \
+    "$PYTHON" promotion_service/promotion_main.py
+
+# 6. API Gateway / Pedidos (:8000)
 run_service "GATEWAY" "$C_GW" \
     "$UVICORN" order_service.gateway_app:app --port 8000 --log-level info
 
-# 6. Frontend Vite (:5173) - desative passando --no-frontend se quiser so o backend
+# 7. Frontend Vite (:5173) - desative passando --no-frontend se quiser so o backend
 if [ "$NO_FRONTEND" = false ] && [ -d "$ROOT_DIR/frontend" ]; then
     run_service "FRONTEND" "$C_FRONT" \
         npm --prefix "$ROOT_DIR/frontend" run dev

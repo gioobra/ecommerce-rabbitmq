@@ -329,3 +329,136 @@ body {
   color: #e2e8f0;
   font-size: 0.8rem;
 }
+
+/* Seção de Inscrição de Promoções */
+.promocoes-section {
+  background: #ffffff;
+  padding: 22px 24px;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+  border: 1px solid #e0e7ff;
+}
+
+.promocoes-header h2 {
+  margin: 0 0 6px 0;
+  font-size: 1.25rem;
+  color: #1e1b4b;
+}
+
+.promocoes-subtitulo {
+  margin: 0 0 18px 0;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.promocoes-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.input-email-promocao {
+  max-width: 450px;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-email-promocao:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.categorias-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.checkbox-item:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.checkbox-item input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #2563eb;
+}
+
+.btn-inscrever-promocao {
+  align-self: flex-start;
+  padding: 10px 22px;
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.btn-inscrever-promocao:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.btn-inscrever-promocao:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.texto-carregando {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 4px 0;
+}
+
+.msg-promocao {
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  max-width: 600px;
+}
+
+.msg-promocao.sucesso {
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.msg-promocao.erro {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}

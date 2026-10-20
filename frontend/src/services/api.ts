@@ -1,4 +1,4 @@
-import type { Produto, NovoPedidoPayload } from "../types/inventory";
+import type { Produto, NovoPedidoPayload, InscricaoPromocaoPayload } from "../types/inventory";
 import type { Pedido } from "../types/order";
 
 const API_URL = "http://localhost:8000";
@@ -11,6 +11,17 @@ export async function buscarProdutos(): Promise<Produto[]>{
     }
     
     const dados: Produto[] = await response.json();
+    return dados;
+}
+
+export async function buscarCategorias(): Promise<string[]>{
+    const response = await fetch(`${API_URL}/categorias`);
+
+    if (!response.ok){
+        throw new Error(`Erro ao buscar categorias: status ${response.status}`);
+    }
+
+    const dados: string[] = await response.json();
     return dados;
 }
 
@@ -41,4 +52,18 @@ export async function cancelarPedido(orderID: string, clientID: string): Promise
 
     const dados: Pedido = await response.json();
     return dados;
+}
+
+export async function cadastrarInteressePromocao(payload: InscricaoPromocaoPayload): Promise<void> {
+    const response = await fetch(`${API_URL}/promocoes/interesse`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Falha ao cadastrar interesse: status ${response.status}`);
+    }
 }

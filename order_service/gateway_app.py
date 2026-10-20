@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 
 from utils import ensure_keys
 import messaging as m
-from events import PEDIDO_CRIADO, PEDIDO_EXCLUIDO
+from events import PEDIDO_CRIADO, PEDIDO_EXCLUIDO, INTERESSE_PROMOCAO
 from gateway_store import OrderStore, CANCELAVEIS, CANCELADO, APLICADO, DESCONHECIDO
 from gateway_handlers import make_handler
 from gateway_sse import SSEHub, TooManyConnections, format_sse, order_event
@@ -38,6 +38,12 @@ class ItemPedido(BaseModel):
 class NovoPedido(BaseModel):
     client_id: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
     itens: list[ItemPedido] = Field(min_length=1, max_length=50)
+
+
+class InscricaoPromocao(BaseModel):
+    client_id: str | None = Field(default=None, max_length=64)
+    email: str = Field(min_length=3, max_length=120, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    categorias: list[str] = Field(min_length=1, max_length=20)
 
 
 def _no_publish(routing_key: str, payload: dict[str, Any]) -> None:
@@ -106,6 +112,35 @@ def create_app(
             return resp.json()
         except ValueError:
             raise HTTPException(502, "Resposta inválida do serviço de estoque")
+
+    @app.get("/categorias")
+    def listar_categorias():
+        """Lista categorias de produtos, consultando o MS Estoque diretamente por REST."""
+        try:
+            resp = app.state.http.get(f"{app.state.inventory_url}/categorias")
+        except httpx.HTTPError:
+            raise HTTPException(503, "Serviço de estoque indisponível")
+        if resp.status_code != 200:
+            raise HTTPException(502, "Resposta inválida do serviço de estoque")
+        try:
+            return resp.json()
+        except ValueError:
+            raise HTTPException(502, "Resposta inválida do serviço de estoque")
+
+    @app.post("/promocoes/interesse", status_code=202)
+    def registrar_interesse_promocao(body: InscricaoPromocao):
+        """Registra interesse do consumidor em promoções e publica interesse.promocao."""
+        payload = {
+            "email": body.email,
+            "categorias": body.categorias,
+            "client_id": body.client_id,
+        }
+        try:
+            app.state.publish(INTERESSE_PROMOCAO, payload)
+        except Exception:
+            log.exception("falha ao publicar interesse.promocao")
+            raise HTTPException(503, "Mensageria indisponível. Tente novamente.")
+        return {"status": "registrado", "email": body.email, "categorias": body.categorias}
 
     @app.post("/pedidos", status_code=202)
     def criar_pedido(body: NovoPedido):

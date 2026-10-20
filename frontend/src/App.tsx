@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./App.css";
 import { buscarProdutos, criarPedido, cancelarPedido } from "./services/api";
 import type { Produto, ItemPedidoInput } from "./types/inventory";
@@ -10,6 +10,7 @@ import type {
 import { ProdutoCard } from "./components/ProdutoCard";
 import { PedidoCard } from "./components/PedidoCard";
 import { SseLogConsole } from "./components/SseLogConsole";
+import { PromocoesForm } from "./components/PromocoesForm";
 
 export default function App() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -18,6 +19,7 @@ export default function App() {
   const [carrinho, setCarrinho] = useState<ItemPedidoInput[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [logsSse, setLogsSse] = useState<PedidoEventData[]>([]);
+  const openedPaymentTabsRef = useRef<Set<string>>(new Set());
 
   // 1. Carrega o catálogo ao abrir a página
   useEffect(() => {
@@ -66,6 +68,15 @@ export default function App() {
       upsertPedido(dados.pedido);
       setLogsSse((logsAtuais) => [dados, ...logsAtuais]);
       buscarProdutos().then(setProdutos).catch(console.error);
+
+      // Requisito: ao finalizar pedido, recebe URL do Mock de Pagamento e abre nova aba para simular pagamento
+      if (
+        dados.pedido.checkout_url &&
+        !openedPaymentTabsRef.current.has(dados.order_id)
+      ) {
+        openedPaymentTabsRef.current.add(dados.order_id);
+        window.open(dados.pedido.checkout_url, "_blank");
+      }
     });
 
     return () => {
@@ -174,6 +185,8 @@ export default function App() {
           </div>
         )}
       </section>
+
+      <PromocoesForm clientId={clientId} />
 
       <div className="painel-inferior">
         <section className="pedidos-section">
