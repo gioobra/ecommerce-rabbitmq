@@ -34,6 +34,8 @@ PIDS=()
 cleanup() {
     echo -e "\n${C_RED}==> [STOP]${C_RESET} ${C_BOLD}Encerrando todos os servicos...${C_RESET}"
     for pid in "${PIDS[@]}"; do
+        pkill -INT -P "$pid" 2>/dev/null || true
+        pkill -TERM -P "$pid" 2>/dev/null || true
         kill "$pid" 2>/dev/null || true
     done
     wait 2>/dev/null || true

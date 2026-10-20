@@ -2,7 +2,9 @@
 
 import logging
 import os
+import signal
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -42,6 +44,15 @@ def main() -> None:
     # Inicia o consumer do RabbitMQ em thread daemon
     m.start_consumer_thread(SERVICE_NAME, BASE_DIR, handler)
 
+    stop_event = threading.Event()
+
+    def _signal_handler(sig, frame):
+        log.info("Sinal %d recebido. Encerrando MS Promoções...", sig)
+        stop_event.set()
+
+    signal.signal(signal.SIGINT, _signal_handler)
+    signal.signal(signal.SIGTERM, _signal_handler)
+
     intervalo = float(os.getenv("PROMOTION_INTERVAL_SECONDS", "20"))
     log.info(
         "MS Promoções ativo. Escutando 'interesse.promocao' e gerando promoções a cada %.1fs.",
@@ -53,8 +64,9 @@ def main() -> None:
         log.info("Modo de simulação de e-mail ativo (sem RESEND_API_KEY). Os disparos serão exibidos no log.")
 
     try:
-        while True:
-            time.sleep(intervalo)
+        while not stop_event.is_set():
+            if stop_event.wait(timeout=intervalo):
+                break
             # Verifica se existem assinantes para notificar
             categorias_ativas = repo.list_categories_with_subscribers()
             if categorias_ativas:
@@ -63,8 +75,12 @@ def main() -> None:
             else:
                 log.debug("Nenhum consumidor cadastrado ainda. Aguardando inscrições...")
     except KeyboardInterrupt:
-        log.info("Encerrando MS Promoções.")
+        log.info("Encerrando MS Promoções (KeyboardInterrupt).")
+    finally:
+        email_client.close()
+        log.info("MS Promoções encerrado com sucesso.")
 
 
 if __name__ == "__main__":
     main()
+
