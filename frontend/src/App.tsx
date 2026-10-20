@@ -143,16 +143,21 @@ export default function App() {
         </div>
         <div className="cliente-bar">
           <label>
-            <strong>OPERATOR_ID: </strong>
+            <strong>CLIENT_ID: </strong>
             <input
               className="input-cliente"
               type="text"
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
+              placeholder="ex: cliente-01"
             />
           </label>
-          <span className={`sse-status ${sseConectado ? "online" : "offline"}`}>
-            {sseConectado ? "[STREAM: ONLINE]" : "[STREAM: OFFLINE]"}
+          <span 
+            className={`sse-status ${sseConectado ? "online" : "offline"}`}
+            title="Conexão Server-Sent Events (SSE) em tempo real com o API Gateway"
+          >
+            <span className="sse-dot"></span>
+            {sseConectado ? "SSE: CONNECTED" : "SSE: DISCONNECTED"}
           </span>
         </div>
       </header>

@@ -86,11 +86,22 @@ body {
 }
 
 .sse-status {
-  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 6px 12px;
   border-radius: 4px;
   letter-spacing: 0.5px;
+  user-select: none;
+}
+
+.sse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
 }
 
 .sse-status.online {
@@ -99,10 +110,36 @@ body {
   border: 1px solid #00ff6640;
 }
 
+.sse-status.online .sse-dot {
+  background-color: #00ff66;
+  box-shadow: 0 0 8px #00ff66;
+  animation: pulse-matrix 1.8s infinite;
+}
+
 .sse-status.offline {
   color: #ff4d4d;
   background: #ff4d4d15;
   border: 1px solid #ff4d4d40;
+}
+
+.sse-status.offline .sse-dot {
+  background-color: #ff4d4d;
+  box-shadow: 0 0 8px #ff4d4d;
+}
+
+@keyframes pulse-matrix {
+  0% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(0, 255, 102, 0.7);
+  }
+  70% {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 6px rgba(0, 255, 102, 0);
+  }
+  100% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(0, 255, 102, 0);
+  }
 }
 
 /* Catálogo */

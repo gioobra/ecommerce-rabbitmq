@@ -93,6 +93,9 @@ if command -v docker >/dev/null 2>&1; then
     echo ""
 fi
 
+# Sempre limpa o banco de promocoes para iniciar sem envios residuais de sessoes anteriores
+rm -f "$ROOT_DIR"/promotion_service/*.db "$ROOT_DIR"/promotion_service/*.db-wal "$ROOT_DIR"/promotion_service/*.db-shm
+
 if [ "$CLEAN_DB" = true ]; then
     echo -e "${C_PAY}==>${C_RESET} ${C_BOLD}[CLEAN] Limpando bancos de dados SQLite (*.db)...${C_RESET}"
     rm -f "$ROOT_DIR"/*_service/*.db "$ROOT_DIR"/*_service/*.db-wal "$ROOT_DIR"/*_service/*.db-shm
