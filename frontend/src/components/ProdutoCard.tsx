@@ -6,13 +6,38 @@ interface ProdutoCardProps {
   onAlterarQuantidade: (produtoId: number, delta: number) => void;
 }
 
+const IMAGENS_PRODUTOS: Record<string, string> = {
+  notebook: "/produtos/notebook.png",
+  mouse: "/produtos/mouse.png",
+  teclado: "/produtos/teclado.png",
+  keyboard: "/produtos/keyboard.png",
+  monitor: "/produtos/monitor.png",
+  headset: "/produtos/headset.png",
+  headphones: "/produtos/headphones.png",
+  webcam: "/produtos/webcam.png",
+};
+
 export function ProdutoCard({
   produto,
   qtdNoCarrinho,
   onAlterarQuantidade,
 }: ProdutoCardProps) {
+  const chave = produto.nome.toLowerCase().trim();
+  const imagemSrc = IMAGENS_PRODUTOS[chave] || `/produtos/${chave}.png`;
+
   return (
     <div className="produto-card">
+      <div className="produto-imagem-container">
+        <img
+          src={imagemSrc}
+          alt={produto.nome}
+          className="produto-imagem"
+          onError={(e) => {
+            (e.currentTarget as HTMLElement).style.display = "none";
+          }}
+        />
+      </div>
+
       <div className="produto-header">
         <h3 className="produto-nome">{produto.nome}</h3>
         <span className="produto-categoria">{produto.categoria}</span>
